@@ -70,17 +70,45 @@ var curDotsGrid = {
             }
         }
     },
+    getRandomColor: function () {
+        return this.colors[Math.round(Math.random() * (this.colors.length-1))];
+    },
     reset: function() {
-        for (x = 0; x < this.height; x++) {
+        for (y = 0; y < this.height; y++) {
             var row = [];
-            for (y = 0; y < this.width; y++) {
-                row.push({color: this.colors[Math.round(Math.random() * (this.colors.length-1))]});
+            for (x = 0; x < this.width; x++) {
+                row.push({active: true, color: this.getRandomColor()});
             }
             this.rows.push(row);
         }
     },
     getColor: function(x, y) {
         return this.rows[y][x].color;
+    },
+    removeDot: function(x, y) {
+        for (i = y; i > 0; i--) {
+            this.rows[i][x].color = this.rows[i-1][x].color;
+            this.rows[i][x].active = this.rows[i-1][x].active;
+        }
+        this.rows[0][x].active = true;
+        this.rows[0][x].color = this.getRandomColor();
+    },
+    markDot: function (x, y) {
+        this.rows[y][x].active = false;
+    },
+    refresh: function() {
+        var finished = true;
+        // Find all inactive dots, remove them, fill in missing dots.
+        for (x = 0; x < this.width; x++) {
+            for (y = 0; y < this.height; y++) {
+                if (!this.rows[y][x].active) {
+                    finished = false;
+                    this.removeDot(x,y);
+                }
+            }
+        }
+
+        return finished;
     }
 };
 
@@ -178,6 +206,8 @@ var activateDragList = function(listPos, grid) {
 
     // Remove all the dots from the line
     for (i = 0; i < listPos.length; i++) {
+        pos = listPos[i];
+        grid.markDot(pos.x, pos.y);
         grid.rows[listPos[i].y][listPos[i].x].color = "#000000";
     }
 }
@@ -190,6 +220,7 @@ canvas.addEventListener('mousedown', function(e) {
 
 canvas.addEventListener('mouseup', function(e) {
     activateDragList(curDragList, curDotsGrid);
+    curDotsGrid.refresh();
     mouseDown = false;
     curDragList = [];
 });
