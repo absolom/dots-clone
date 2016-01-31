@@ -42,6 +42,28 @@ var getGridPosFromEvent = function(e) {
     return gridPos;
 };
 
+var renderDragList = function(list) {
+    if (list.length < 2) {
+        return;
+    }
+
+    coords = [];
+
+    for (i = 0; i < list.length; i++) {
+        var coord = {
+            x: gridToCoord(list[i].x),
+            y: gridToCoord(list[i].y)
+        }
+        coords.push(coord);
+    }
+
+    ctx.moveTo(coords[0].x, coords[0].y);
+    for (i = 1; i < coords.length; i++) {
+        ctx.lineTo(coords[i].x, coords[i].y);
+    }
+    ctx.stroke();
+}
+
 canvas.addEventListener('mousedown', function(e) {
     curDragList = [];
     mouseDown = true;
@@ -55,13 +77,46 @@ canvas.addEventListener('mouseup', function(e) {
     curDragList = [];
 });
 
+var addGridPosToDragList = function (list, gridPos) {
+    // If adding the same element as the last element, do nothing
+    if (list.length > 0) {
+        curPos = list[list.length-1];
+        if (curPos.x == gridPos.x && curPos.y == gridPos.y) {
+            return;
+        }
+    }
+
+    // If adding the previous element, remove the last element instead
+    if (list.length > 1) {
+        var lastPos = list[list.length-2];
+        if (lastPos.x == gridPos.x && lastPos.y == gridPos.y) {
+            list.pop();
+            return;
+        }
+    }
+
+    // If trying to add a new pos that is farther than one step from the old, skip it
+    if (list.length > 0) {
+        curPos = list[list.length-1];
+        var diffX = Math.abs(curPos.x - gridPos.x);
+        var diffY = Math.abs(curPos.y - gridPos.y);
+
+        if (diffX > 1 || diffY > 1 || (diffX == 1 && diffY == 1)) {
+            return;
+        }
+    }
+
+    // Add element to the end of the list
+    list.push(gridPos);
+};
+
 canvas.addEventListener('mousemove', function(e) {
     if (mouseDown) {
         gridPos = getGridPosFromEvent(e);
-        curDragList.push(gridPos);
+        addGridPosToDragList(curDragList, gridPos);
     }
 
-    // renderDragList(curDragList);
+    renderDragList(curDragList);
 });
 
 
