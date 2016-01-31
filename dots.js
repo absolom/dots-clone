@@ -4,6 +4,7 @@ var gridScale = 2*dotRadius + dotSpacing;
 var dotOffset = dotRadius + dotSpacing;
 var curDragList = [];
 var mouseDown = false;
+var dragListClosed = false;
 
 var gridToCoord = function (gridInd) {
     return gridScale * gridInd + dotOffset;
@@ -89,6 +90,7 @@ var getGridPosFromEvent = function(e) {
 
 canvas.addEventListener('mousedown', function(e) {
     curDragList = [];
+    dragListClosed = false;
     mouseDown = true;
 });
 
@@ -101,6 +103,11 @@ canvas.addEventListener('mouseup', function(e) {
 });
 
 var addGridPosToDragList = function (list, gridPos) {
+    // No negative values
+    if (gridPos.x < 0 || gridPos.y < 0) {
+        return;
+    }
+
     // If adding the same element as the last element, do nothing
     if (list.length > 0) {
         curPos = list[list.length-1];
@@ -113,6 +120,7 @@ var addGridPosToDragList = function (list, gridPos) {
     if (list.length > 1) {
         var lastPos = list[list.length-2];
         if (lastPos.x == gridPos.x && lastPos.y == gridPos.y) {
+            dragListClosed = false;
             list.pop();
             return;
         }
@@ -129,8 +137,24 @@ var addGridPosToDragList = function (list, gridPos) {
         }
     }
 
+    // If adding a pos already in the list, ignore unless it is the first one
+    for (i = 0; i < list.length; i++) {
+        if (list[i].x == gridPos.x && list[i].y == gridPos.y) {
+            if (i == 0) {
+                dragListClosed = true;
+                list.push(gridPos);
+                return;
+            }
+            else {
+                return;
+            }
+        }
+    }
+
     // Add element to the end of the list
-    list.push(gridPos);
+    if (!dragListClosed) {
+        list.push(gridPos);
+    }
 };
 
 canvas.addEventListener('mousemove', function(e) {
