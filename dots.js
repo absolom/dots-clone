@@ -51,19 +51,32 @@ var renderDragList = function(list) {
     ctx.stroke();
 }
 
-var dot = {
-    color: "#0000FF"
-}
-
 var curDotsGrid = {
-    width: 6,
-    height: 6,
+    colors: [
+        "#FF00FF",
+        "#00FFFF",
+        "#0000FF",
+        "#00FF00",
+        "#FFFF00",
+        "#FF0000"
+        ],
+    width: 10,
+    height: 13,
     rows: [],
     render: function(context) {
         for (y = 0; y < this.rows.length; y++) {
             for (x = 0; x < this.rows[y].length; x++) {
                 drawDot(x, y, this.rows[y][x].color);
             }
+        }
+    },
+    reset: function() {
+        for (x = 0; x < this.height; x++) {
+            var row = [];
+            for (y = 0; y < this.width; y++) {
+                row.push({color: this.colors[Math.round(Math.random() * (this.colors.length-1))]});
+            }
+            this.rows.push(row);
         }
     }
 };
@@ -96,9 +109,6 @@ canvas.addEventListener('mousedown', function(e) {
 
 canvas.addEventListener('mouseup', function(e) {
     mouseDown = false;
-    for (i = 0; i < curDragList.length; i++) {
-        drawDot(curDragList[i].x, curDragList[i].y, "#FF00F0");
-    }
     curDragList = [];
 });
 
@@ -167,11 +177,5 @@ canvas.addEventListener('mousemove', function(e) {
 });
 
 
-redDotsRow = [{color: "#FF00FF"},{color: "#00FFFF"},{color: "#0000FF"},
-              {color: "#00FF00"},{color: "#FFFF00"},{color: "#FF0000"}];
-
-for (x = 0; x < 6; x++) {
-    curDotsGrid.rows.push(redDotsRow.slice());
-}
-
+curDotsGrid.reset();
 render();
