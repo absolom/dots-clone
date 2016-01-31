@@ -38,7 +38,6 @@ var getGridPosFromEvent = function(e) {
 
 // Rendering Code
 
-
 var drawDot = function (gridX, gridY, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -101,7 +100,7 @@ var curDotsGrid = {
     getRandomColor: function () {
         return this.colors[Math.round(Math.random() * (this.colors.length-1))];
     },
-    reset: function() {
+    init: function() {
         for (y = 0; y < this.height; y++) {
             var row = [];
             for (x = 0; x < this.width; x++) {
@@ -123,6 +122,9 @@ var curDotsGrid = {
     },
     clearColorClear: function () {
         this.colorClear = false;
+    },
+    reset: function () {
+        this.clearColorClear();
     },
     removeDot: function(x, y) {
         for (i = y; i > 0; i--) {
@@ -228,17 +230,12 @@ var curDragList = {
             }
         }
 
-        // If adding a pos already in the this.list, ignore unless it is the first one
+        // If adding a pos already in the this.list, close the list until it is removed
         for (i = 0; i < this.list.length; i++) {
             if (this.list[i].x == gridPos.x && this.list[i].y == gridPos.y) {
-                if (i == 0) {
-                    this.dragListClosed = true;
-                    this.list.push(gridPos);
-                    return;
-                }
-                else {
-                    return;
-                }
+                this.dragListClosed = true;
+                this.list.push(gridPos);
+                return;
             }
         }
 
@@ -267,11 +264,9 @@ var processDragList = function(dragList, grid) {
         }
     }
 
-    // Check if they create a closed polygon (start == end)
-    if (listPos[0].x == listPos[listPos.length-1].x &&
-        listPos[0].y == listPos[listPos.length-1].y) {
+    // Check if they create a closed polygon
+    if (dragList.dragListClosed) {
         grid.setColorClear(listPos[0].x, listPos[0].y);
-        // Check for enclosed dots and make bombs
     }
 
     // Remove all the dots from the line
@@ -291,7 +286,7 @@ canvas.addEventListener('mousedown', function(e) {
 canvas.addEventListener('mouseup', function(e) {
     processDragList(curDragList, curDotsGrid);
     curDotsGrid.refresh();
-    curDotsGrid.clearColorClear();
+    curDotsGrid.reset();
     mouseDown = false;
     curDragList.reset();
     render();
@@ -312,5 +307,5 @@ canvas.addEventListener('mousemove', function(e) {
     render();
 });
 
-curDotsGrid.reset();
+curDotsGrid.init();
 render();
