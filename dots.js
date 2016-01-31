@@ -85,25 +85,64 @@ var curDotsGrid = {
     getColor: function(x, y) {
         return this.rows[y][x].color;
     },
+    addDot: function(x, y) {
+        this.rows[y][x].active = true;
+        this.rows[y][x].color = this.getRandomColor();
+    },
+    setColorClear: function (x, y) {
+        this.colorClear = true;
+        this.colorClearCol = this.getColor(x, y);
+    },
+    clearColorClear: function () {
+        this.colorClear = false;
+    },
     removeDot: function(x, y) {
         for (i = y; i > 0; i--) {
             this.rows[i][x].color = this.rows[i-1][x].color;
             this.rows[i][x].active = this.rows[i-1][x].active;
         }
-        this.rows[0][x].active = true;
-        this.rows[0][x].color = this.getRandomColor();
+        this.rows[0][x].active = false;
     },
     markDot: function (x, y) {
         this.rows[y][x].active = false;
     },
+    markAllWithColor: function (col) {
+        for (x = 0; x < this.width; x++) {
+            for (y = 0; y < this.height; y++) {
+                if (this.rows[y][x].color == col) {
+                    this.markDot(x, y);
+                }
+            }
+        }
+    },
     refresh: function() {
         var finished = true;
+
+        // If color clear, mark all color clear colored dots inactive
+        if (this.colorClear) {
+            this.markAllWithColor(this.colorClearCol);
+        }
+
         // Find all inactive dots, remove them, fill in missing dots.
         for (x = 0; x < this.width; x++) {
             for (y = 0; y < this.height; y++) {
                 if (!this.rows[y][x].active) {
                     finished = false;
-                    this.removeDot(x,y);
+                    this.removeDot(x, y);
+                }
+            }
+        }
+
+        // Newly added dots need to be initialized
+        for (x = 0; x < this.width; x++) {
+            for (y = 0; y < this.height; y++) {
+                if (!this.rows[y][x].active) {
+                    this.addDot(x, y);
+                    if (this.colorClear) {
+                        while (this.getColor(x, y) == this.colorClearCol) {
+                            this.addDot(x, y);
+                        }
+                    }
                 }
             }
         }
@@ -135,6 +174,11 @@ var getGridPosFromEvent = function(e) {
 var addGridPosToDragList = function (list, gridPos) {
     // No negative values
     if (gridPos.x < 0 || gridPos.y < 0) {
+        return;
+    }
+
+    // No values bigger than the grid
+    if (gridPos.x >= curDotsGrid.width || gridPos.y >= curDotsGrid.height) {
         return;
     }
 
@@ -203,6 +247,11 @@ var activateDragList = function(listPos, grid) {
     }
 
     // Check if they create a closed polygon (start == end)
+    if (listPos[0].x == listPos[listPos.length-1].x &&
+        listPos[0].y == listPos[listPos.length-1].y) {
+        grid.setColorClear(listPos[0].x, listPos[0].y);
+        // Check for enclosed dots and make bombs
+    }
 
     // Remove all the dots from the line
     for (i = 0; i < listPos.length; i++) {
@@ -221,8 +270,15 @@ canvas.addEventListener('mousedown', function(e) {
 canvas.addEventListener('mouseup', function(e) {
     activateDragList(curDragList, curDotsGrid);
     curDotsGrid.refresh();
+    curDotsGrid.clearColorClear();
     mouseDown = false;
     curDragList = [];
+});
+
+canvas.addEventListener('mouseout', function(e) {
+    mouseDown = false;
+    curDragList = [];
+    render();
 });
 
 canvas.addEventListener('mousemove', function(e) {
