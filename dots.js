@@ -26,21 +26,7 @@ var ctx = canvas.getContext("2d");
 var canvasPos = {
     x: canvas.offsetLeft - canvas.scrollLeft + canvas.clientLeft,
     y: canvas.offsetTop - canvas.scrollTop + canvas.clientTop
-};
-
-var getGridPosFromEvent = function(e) {
-    var mouse = {
-        x: e.pageX - canvasPos.x,
-        y: e.pageY - canvasPos.y
-    };
-
-    var gridPos = {
-        x: coordToGrid(mouse.x),
-        y: coordToGrid(mouse.y)
-    };
-
-    return gridPos;
-};
+}
 
 var renderDragList = function(list) {
     if (list.length < 2) {
@@ -63,6 +49,43 @@ var renderDragList = function(list) {
     }
     ctx.stroke();
 }
+
+var dot = {
+    color: "#0000FF"
+}
+
+var curDotsGrid = {
+    width: 6,
+    height: 6,
+    rows: [],
+    render: function(context) {
+        for (y = 0; y < this.rows.length; y++) {
+            for (x = 0; x < this.rows[y].length; x++) {
+                drawDot(x, y, this.rows[y][x].color);
+            }
+        }
+    }
+};
+
+var render = function() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    renderDragList(curDragList);
+    curDotsGrid.render(ctx);
+};
+
+var getGridPosFromEvent = function(e) {
+    var mouse = {
+        x: e.pageX - canvasPos.x,
+        y: e.pageY - canvasPos.y
+    };
+
+    var gridPos = {
+        x: coordToGrid(mouse.x),
+        y: coordToGrid(mouse.y)
+    };
+
+    return gridPos;
+};
 
 canvas.addEventListener('mousedown', function(e) {
     curDragList = [];
@@ -116,14 +139,15 @@ canvas.addEventListener('mousemove', function(e) {
         addGridPosToDragList(curDragList, gridPos);
     }
 
-    renderDragList(curDragList);
+    render();
 });
 
 
-drawDot(5, 5, "#00FF00");
-drawDot(5, 6, "#00FF00");
-drawDot(6, 6, "#00FF00");
-drawDot(6, 5, "#00FF00");
-drawDot(0, 0, "#00FFFF");
-drawDot(1, 0, "#00FFFF");
-drawDot(0, 1, "#00FFFF");
+redDotsRow = [{color: "#FF00FF"},{color: "#00FFFF"},{color: "#0000FF"},
+              {color: "#00FF00"},{color: "#FFFF00"},{color: "#FF0000"}];
+
+for (x = 0; x < 6; x++) {
+    curDotsGrid.rows.push(redDotsRow.slice());
+}
+
+render();
