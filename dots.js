@@ -78,6 +78,9 @@ var curDotsGrid = {
             }
             this.rows.push(row);
         }
+    },
+    getColor: function(x, y) {
+        return this.rows[y][x].color;
     }
 };
 
@@ -100,17 +103,6 @@ var getGridPosFromEvent = function(e) {
 
     return gridPos;
 };
-
-canvas.addEventListener('mousedown', function(e) {
-    curDragList = [];
-    dragListClosed = false;
-    mouseDown = true;
-});
-
-canvas.addEventListener('mouseup', function(e) {
-    mouseDown = false;
-    curDragList = [];
-});
 
 var addGridPosToDragList = function (list, gridPos) {
     // No negative values
@@ -167,6 +159,41 @@ var addGridPosToDragList = function (list, gridPos) {
     }
 };
 
+var activateDragList = function(listPos, grid) {
+    // Check that the list has 2 or more points
+    if (listPos.length < 2) {
+        return;
+    }
+
+    // Check that they are all the same color
+    for (i = 0; i < listPos.length-1; i++) {
+        col1 = grid.getColor(listPos[i].x, listPos[i].y);
+        col2 = grid.getColor(listPos[i+1].x, listPos[i+1].y)
+        if (col1 != col2) {
+            return;
+        }
+    }
+
+    // Check if they create a closed polygon (start == end)
+
+    // Remove all the dots from the line
+    for (i = 0; i < listPos.length; i++) {
+        grid.rows[listPos[i].y][listPos[i].x].color = "#000000";
+    }
+}
+
+canvas.addEventListener('mousedown', function(e) {
+    curDragList = [];
+    dragListClosed = false;
+    mouseDown = true;
+});
+
+canvas.addEventListener('mouseup', function(e) {
+    activateDragList(curDragList, curDotsGrid);
+    mouseDown = false;
+    curDragList = [];
+});
+
 canvas.addEventListener('mousemove', function(e) {
     if (mouseDown) {
         gridPos = getGridPosFromEvent(e);
@@ -175,7 +202,6 @@ canvas.addEventListener('mousemove', function(e) {
 
     render();
 });
-
 
 curDotsGrid.reset();
 render();
