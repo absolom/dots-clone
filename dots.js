@@ -1,3 +1,8 @@
+// Redefine modulo to work for neg numbers
+Number.prototype.mod = function (x) {
+    return ((this % x) + x) % x;
+}
+
 // Globals which need to be pushed into objects
 var dotRadius = 13;
 var dotSpacing = 18;
@@ -85,26 +90,32 @@ var render = function() {
 // Dot grid object
 
 var curDotsGrid = {
-    // TODO: Change colors to an enum
-    colors: [
-        "#FF00FF",
-        "#00FFFF",
-        "#0000FF",
-        "#00FF00",
-        "#FFFF00",
-        "#FF0000"
-        ],
+    colors: {
+        magenta: "#FF00FF",
+        cyan: "#00FFFF",
+        blue: "#0000FF",
+        green: "#00FF00",
+        yellow: "#FFFF00",
+        red: "#FF0000",
+        getRandomColor: function () {
+                var array = ["magenta", "cyan", "blue", "green", "yellow", "red"];
+                var indx = Math.round(Math.random() * (array.length-1));
+                return this[array[indx]];
+            }
+        },
     width: 10,
     height: 13,
     rows: [],
-    getRandomColor: function () {
-        return this.colors[Math.round(Math.random() * (this.colors.length-1))];
-    },
+    // getRandomColor: function () {
+
+    //     // return this.colors[colors.array[Math.round(Math.random() * (this.colors.array.length-1))];
+    // },
     init: function() {
         for (y = 0; y < this.height; y++) {
             var row = [];
             for (x = 0; x < this.width; x++) {
-                row.push({active: true, color: this.getRandomColor()});
+                // row.push({active: true, color: this.getRandomColor()});
+                row.push({isbomb: false, active: true, color: this.colors.getRandomColor()});
             }
             this.rows.push(row);
         }
@@ -114,7 +125,8 @@ var curDotsGrid = {
     },
     addDot: function(x, y) {
         this.rows[y][x].active = true;
-        this.rows[y][x].color = this.getRandomColor();
+        this.rows[y][x].isbomb = false;
+        this.rows[y][x].color = this.colors.getRandomColor();
     },
     setColorClear: function (x, y) {
         this.colorClear = true;
@@ -130,6 +142,7 @@ var curDotsGrid = {
         for (i = y; i > 0; i--) {
             this.rows[i][x].color = this.rows[i-1][x].color;
             this.rows[i][x].active = this.rows[i-1][x].active;
+            this.rows[i][x].isbomb = this.rows[i-1][x].isbomb;
         }
         this.rows[0][x].active = false;
     },
@@ -140,10 +153,15 @@ var curDotsGrid = {
         for (x = 0; x < this.width; x++) {
             for (y = 0; y < this.height; y++) {
                 if (this.rows[y][x].color == col) {
-                    this.markDot(x, y);
+                    if (this.rows[y][x].isbomb == false) {
+                        this.markDot(x, y);
+                    }
                 }
             }
         }
+    },
+    markBomb: function (x, y) {
+        this.rows[y][x].isbomb = true;
     },
     refresh: function() {
         var finished = true;
@@ -152,6 +170,10 @@ var curDotsGrid = {
         if (this.colorClear) {
             this.markAllWithColor(this.colorClearCol);
         }
+
+        // TODO: Check if there are inactive dots, if there are, remove them and
+        // fill in the grid
+        // If there are no inactive dots, look for bomb dots
 
         // Find all inactive dots, remove them, fill in missing dots.
         for (x = 0; x < this.width; x++) {
@@ -162,6 +184,17 @@ var curDotsGrid = {
                 }
             }
         }
+
+        // Blow up bomb dots and their surroundings.
+        for (x = 0; x < this.width; x++) {
+            for (y = 0; y < this.height; y++) {
+                if (this.rows[y][x].isbomb) {
+                    this.rows[y][x].color = "#000000";
+                    this.rows[y][x].isbomb = false;
+                }
+            }
+        }
+
 
         // Newly added dots need to be initialized
         for (x = 0; x < this.width; x++) {
@@ -246,6 +279,114 @@ var curDragList = {
     }
 };
 
+var stripTail = function (listPos) {
+    var start = listPos[0];
+    var ret = [start];
+
+    for (i = 1; i < listPos.length; i++) {
+        ret.push({x: listPos[i].x, y: listPos[i].y});
+        if (listPos[i].x == start.x &&
+            listPos[i].y == start.y) {
+            return ret;
+        }
+    }
+
+    var end = listPos[listPos.length-1];
+    ret = [end];
+    for (i = listPos.length-2; i >= 0; i--) {
+        ret.push({x: listPos[i].x, y: listPos[i].y});
+        if (listPos[i].x == end.x &&
+            listPos[i].y == end.y) {
+            return ret;
+        }
+    }
+
+    return ret;
+};
+
+var findEnclosed = function (listPos, width, height) {
+    var enclosed = [];
+    var str = "";
+    listPos = stripTail(listPos);
+    for (x = 0; x < width; x++) {
+        for (y = 0; y < height; y++) {
+            var crossed = 0;
+            var onEdge = false;
+            for (i = 0; i < listPos.length; i++) {
+                if (listPos[i].x == x && listPos[i].y == y) {
+                    onEdge = true;
+                    break;
+                }
+            }
+            if (onEdge) {
+                continue;
+            }
+            var skipInds = [];
+            for (i = 0; i < listPos.length-1; i++) {
+                // Check if we've already identified this listPos as
+                // part of an edge which we are intersecting along
+                var skip = false;
+                for (j = 0; j < skipInds.length; j++) {
+                    if (skipInds[j] == i) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip) {
+                    continue;
+                }
+
+                if (listPos[i].x >= x) {
+                    if (listPos[i].y == y) {
+                        // Count the number of consecutive polygon vertices
+                        // along the tangent
+                        var edgeLen = 1;
+                        var j = (i+1).mod(listPos.length-1);
+                        while (j != i && listPos[j].y == y) {
+                            edgeLen += 1;
+                            j += 1;
+                            j = j % (listPos.length-1);
+                        }
+
+                        if (edgeLen > 1) {
+                            for (k = 0; k < edgeLen; k++) {
+                                skipInds.push(i+k);
+                            }
+                            continue;
+                        }
+
+                        edgeLen = 1;
+                        j = (i-1).mod(listPos.length-1);
+                        while (j != i && listPos[j].y == y) {
+                            edgeLen += 1;
+                            j -= 1;
+                            j = j % (listPos.length-1);
+                        }
+
+                        if (edgeLen > 1) {
+                            for (k = 0; k < edgeLen; k++) {
+                                skipInds.push(i-k);
+                            }
+                            continue;
+                        }
+
+                        crossed += 1;
+                    }
+                    else {
+                    }
+                }
+            }
+
+            // If crossed is odd
+            if (crossed % 2 == 1) {
+                enclosed.push({x: x, y: y});
+                // str += "(" + x.toString() + "," + y.toString() + ")";
+            }
+        }
+    }
+    return enclosed;
+};
+
 // Game Logic
 
 var processDragList = function(dragList, grid) {
@@ -267,6 +408,13 @@ var processDragList = function(dragList, grid) {
     // Check if they create a closed polygon
     if (dragList.dragListClosed) {
         grid.setColorClear(listPos[0].x, listPos[0].y);
+        // Check if there are dots enclosed to turn into bombs
+        var enclosed = findEnclosed(dragList.list, grid.width, grid.height);
+        if (enclosed.length != 0) {
+            for (i = 0; i < enclosed.length; i++) {
+                grid.markBomb(enclosed[i].x, enclosed[i].y);
+            }
+        }
     }
 
     // Remove all the dots from the line
@@ -309,3 +457,116 @@ canvas.addEventListener('mousemove', function(e) {
 
 curDotsGrid.init();
 render();
+
+//////// Unit tests
+
+var found = findEnclosed([
+        {x: 0, y: 0},
+        {x: 1, y: 0},
+        {x: 1, y: 1},
+        {x: 0, y: 1},
+        {x: 0, y: 0}
+    ], 10, 10);
+
+if (found.length != 0) {
+    alert('failed 1');
+}
+
+var found = findEnclosed([
+        {x: 0, y: 0},
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 2, y: 1},
+        {x: 2, y: 2},
+        {x: 1, y: 2},
+        {x: 0, y: 2},
+        {x: 0, y: 1},
+        {x: 0, y: 0},
+    ], 10, 10);
+
+if (found.length != 1 ||
+    (found[0].x != 1 || found[0].y != 1)) {
+    alert('failed 2');
+}
+
+var stripped = stripTail([
+        {x: 2, y: 2},
+        {x: 1, y: 2},
+        {x: 0, y: 2},
+        {x: 0, y: 1},
+        {x: 0, y: 0},
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 2, y: 1},
+        {x: 2, y: 2},
+        {x: 3, y: 2},
+        {x: 3, y: 3}]);
+
+if (stripped.length != 9) {
+    alert('failed a');
+}
+
+var found = findEnclosed([
+        {x: 2, y: 2},
+        {x: 1, y: 2},
+        {x: 0, y: 2},
+        {x: 0, y: 1},
+        {x: 0, y: 0},
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 2, y: 1},
+        {x: 2, y: 2},
+        {x: 3, y: 2},
+        {x: 3, y: 3},
+    ], 10, 10);
+
+if (found.length != 1 ||
+    (found[0].x != 1 || found[0].y != 1)) {
+    alert('failed 3');
+}
+
+var stripped = stripTail([
+        {x: 0, y: 0},
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
+        {x: 5, y: 1},
+        {x: 6, y: 1},
+        {x: 7, y: 1},
+        {x: 7, y: 2},
+        {x: 7, y: 3},
+        {x: 6, y: 3},
+        {x: 5, y: 3},
+        {x: 5, y: 2},
+        {x: 5, y: 1}]);
+
+if (stripped.length != 9 ||
+    (stripped[8].x != 5 || stripped[8].y != 1)) {
+    alert('failed b');
+}
+
+var found = findEnclosed([
+        {x: 0, y: 0},
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
+        {x: 5, y: 1},
+        {x: 6, y: 1},
+        {x: 7, y: 1},
+        {x: 7, y: 2},
+        {x: 7, y: 3},
+        {x: 6, y: 3},
+        {x: 5, y: 3},
+        {x: 5, y: 2},
+        {x: 5, y: 1},
+    ], 10, 10);
+
+if (found.length != 1 ||
+    (found[0].x != 6 || found[0].y != 2)) {
+    alert('failed 4');
+    alert('length: ' + found.length.toString());
+}
