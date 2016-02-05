@@ -452,7 +452,9 @@ canvas.addEventListener('mousedown', function(e) {
 });
 
 canvas.addEventListener('mouseup', function(e) {
-    gameState.advance(curDragList, curDotsGrid);
+    if (gameState.advance(curDragList, curDotsGrid) == 0) {
+        curDragList.reset();
+    }
     render();
 
     var intrvl = setInterval(function () {
