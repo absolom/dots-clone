@@ -76,7 +76,15 @@ var renderDragList = function(dragList) {
 var renderGrid = function(context, grid) {
     for (y = 0; y < grid.rows.length; y++) {
         for (x = 0; x < grid.rows[y].length; x++) {
-            drawDot(x, y, grid.rows[y][x].color);
+            if (grid.rows[y][x].isbomb) {
+                drawDot(x, y, "#808080");
+            }
+            else if (grid.rows[y][x].destroyed) {
+                drawDot(x, y, "#000000");
+            }
+            else {
+                drawDot(x, y, grid.rows[y][x].color);
+            }
         }
     }
 };
@@ -106,16 +114,65 @@ var curDotsGrid = {
     width: 10,
     height: 13,
     rows: [],
-    // getRandomColor: function () {
+    areAllSameColor: function (listPos) {
+        // Check that they are all the same color
+        for (i = 0; i < listPos.length-1; i++) {
+            col1 = this.getColor(listPos[i].x, listPos[i].y);
+            col2 = this.getColor(listPos[i+1].x, listPos[i+1].y)
+            if (col1 != col2) {
+                return false;
+            }
+        }
+        return true;
+    },
+    markDestroyed: function (listPos) {
+        // Remove all the dots from the line
+        for (i = 0; i < listPos.length; i++) {
+            pos = listPos[i];
+            this.rows[pos.y][pos.x].destroyed = true;
+        }
+    },
+    exploadBombs: function () {
+        // Blow up bomb dots and their surroundings.
+        for (x = 0; x < this.width; x++) {
+            for (y = 0; y < this.height; y++) {
+                if (this.rows[y][x].isbomb) {
+                    this.rows[y][x].isbomb = false;
+                    this.rows[y][x].destroyed = true;
 
-    //     // return this.colors[colors.array[Math.round(Math.random() * (this.colors.array.length-1))];
-    // },
+                    // blow up adjacent
+                    for (i = -1; i <= 1; i++) {
+                        for (j = -1; j <= 1; j++) {
+                            // Check if the adjacent coord is off the map
+                            if (x + i < 0 ||
+                                x + i >= this.width) {
+                                continue;
+                            }
+                            if (y + j < 0 ||
+                                y + j >= this.height) {
+                                continue;
+                            }
+
+                            if (!this.rows[y+j][x+i].isbomb) {
+                                this.rows[y+j][x+i].destroyed = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    markBombs: function(listPos) {
+        for (i = 0; i < listPos.length; i++) {
+            this.markBomb(listPos[i].x, listPos[i].y);
+        }
+    },
     init: function() {
         for (y = 0; y < this.height; y++) {
             var row = [];
             for (x = 0; x < this.width; x++) {
                 // row.push({active: true, color: this.getRandomColor()});
-                row.push({isbomb: false, active: true, color: this.colors.getRandomColor()});
+                row.push({destroyed: false, isbomb: false, active: true, color: this.colors.getRandomColor()});
             }
             this.rows.push(row);
         }
@@ -123,23 +180,31 @@ var curDotsGrid = {
     getColor: function(x, y) {
         return this.rows[y][x].color;
     },
-    addDot: function(x, y) {
+    addDot: function(x, y, unallowedColors) {
+        var that = this;
+
+        this.rows[y][x].destroyed = false;
         this.rows[y][x].active = true;
         this.rows[y][x].isbomb = false;
         this.rows[y][x].color = this.colors.getRandomColor();
-    },
-    setColorClear: function (x, y) {
-        this.colorClear = true;
-        this.colorClearCol = this.getColor(x, y);
-    },
-    clearColorClear: function () {
-        this.colorClear = false;
-    },
-    reset: function () {
-        this.clearColorClear();
+
+        var isUnallowed = function () {
+            for (i = 0; i < unallowedColors.length; i++) {
+                if (unallowedColors[i] == that.rows[y][x].color) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        while (isUnallowed()) {
+            this.rows[y][x].color = this.colors.getRandomColor();
+        }
+
     },
     removeDot: function(x, y) {
         for (i = y; i > 0; i--) {
+            this.rows[i][x].destroyed = this.rows[i-1][x].destroyed;
             this.rows[i][x].color = this.rows[i-1][x].color;
             this.rows[i][x].active = this.rows[i-1][x].active;
             this.rows[i][x].isbomb = this.rows[i-1][x].isbomb;
@@ -147,7 +212,7 @@ var curDotsGrid = {
         this.rows[0][x].active = false;
     },
     markDot: function (x, y) {
-        this.rows[y][x].active = false;
+        this.rows[y][x].destroyed = true;
     },
     markAllWithColor: function (col) {
         for (x = 0; x < this.width; x++) {
@@ -162,55 +227,29 @@ var curDotsGrid = {
     },
     markBomb: function (x, y) {
         this.rows[y][x].isbomb = true;
+        this.rows[y][x].active = true;
+        this.rows[y][x].destroyed = false;
     },
-    refresh: function() {
-        var finished = true;
-
-        // If color clear, mark all color clear colored dots inactive
-        if (this.colorClear) {
-            this.markAllWithColor(this.colorClearCol);
-        }
-
-        // TODO: Check if there are inactive dots, if there are, remove them and
-        // fill in the grid
-        // If there are no inactive dots, look for bomb dots
-
-        // Find all inactive dots, remove them, fill in missing dots.
+    populateInactive: function(unallowedColors) {
+        // Initialize new dots
         for (x = 0; x < this.width; x++) {
             for (y = 0; y < this.height; y++) {
                 if (!this.rows[y][x].active) {
-                    finished = false;
+                    this.addDot(x, y, unallowedColors);
+                }
+            }
+        }
+
+    },
+    removeDestroyed: function () {
+        // Remove inactive
+        for (x = 0; x < this.width; x++) {
+            for (y = 0; y < this.height; y++) {
+                if (this.rows[y][x].destroyed) {
                     this.removeDot(x, y);
                 }
             }
         }
-
-        // Blow up bomb dots and their surroundings.
-        for (x = 0; x < this.width; x++) {
-            for (y = 0; y < this.height; y++) {
-                if (this.rows[y][x].isbomb) {
-                    this.rows[y][x].color = "#000000";
-                    this.rows[y][x].isbomb = false;
-                }
-            }
-        }
-
-
-        // Newly added dots need to be initialized
-        for (x = 0; x < this.width; x++) {
-            for (y = 0; y < this.height; y++) {
-                if (!this.rows[y][x].active) {
-                    this.addDot(x, y);
-                    if (this.colorClear) {
-                        while (this.getColor(x, y) == this.colorClearCol) {
-                            this.addDot(x, y);
-                        }
-                    }
-                }
-            }
-        }
-
-        return finished;
     }
 };
 
@@ -219,9 +258,27 @@ var curDotsGrid = {
 var curDragList = {
     list: [],
     dragListClosed: false,
+    isValid: function (grid) {
+        if (list.length < 2) {
+            return false;
+        }
+
+        if (!grid.areAllSameColor(list)) {
+            return false;
+        }
+
+        return true;
+    },
     reset: function () {
         this.dragListClosed = false;
         this.list = [];
+    },
+    getEnclosedPos: function (width, height) {
+        // if (dragList.dragListClosed) {
+        // grid.setColorClear(listPos[0].x, listPos[0].y);
+        // Check if there are dots enclosed to turn into bombs
+        var enclosed = findEnclosed(this.list, width, height);
+        return enclosed;
     },
     addGridPosToDragList: function (gridPos) {
         // No negative values
@@ -387,43 +444,6 @@ var findEnclosed = function (listPos, width, height) {
     return enclosed;
 };
 
-// Game Logic
-
-var processDragList = function(dragList, grid) {
-    listPos = dragList.list;
-    // Check that the list has 2 or more points
-    if (listPos.length < 2) {
-        return;
-    }
-
-    // Check that they are all the same color
-    for (i = 0; i < listPos.length-1; i++) {
-        col1 = grid.getColor(listPos[i].x, listPos[i].y);
-        col2 = grid.getColor(listPos[i+1].x, listPos[i+1].y)
-        if (col1 != col2) {
-            return;
-        }
-    }
-
-    // Check if they create a closed polygon
-    if (dragList.dragListClosed) {
-        grid.setColorClear(listPos[0].x, listPos[0].y);
-        // Check if there are dots enclosed to turn into bombs
-        var enclosed = findEnclosed(dragList.list, grid.width, grid.height);
-        if (enclosed.length != 0) {
-            for (i = 0; i < enclosed.length; i++) {
-                grid.markBomb(enclosed[i].x, enclosed[i].y);
-            }
-        }
-    }
-
-    // Remove all the dots from the line
-    for (i = 0; i < listPos.length; i++) {
-        pos = listPos[i];
-        grid.markDot(pos.x, pos.y);
-    }
-}
-
 // Input Listeners
 
 canvas.addEventListener('mousedown', function(e) {
@@ -432,12 +452,20 @@ canvas.addEventListener('mousedown', function(e) {
 });
 
 canvas.addEventListener('mouseup', function(e) {
-    processDragList(curDragList, curDotsGrid);
-    curDotsGrid.refresh();
-    curDotsGrid.reset();
-    mouseDown = false;
-    curDragList.reset();
+    gameState.advance(curDragList, curDotsGrid);
     render();
+
+    var intrvl = setInterval(function () {
+        var newState = gameState.advance(curDragList, curDotsGrid);
+        if (newState == 2) {
+            curDragList.reset();
+        }
+        else if (newState == 0) {
+            clearInterval(intrvl);
+        }
+        render();
+    }, 300);
+    mouseDown = false;
 });
 
 canvas.addEventListener('mouseout', function(e) {
@@ -454,6 +482,62 @@ canvas.addEventListener('mousemove', function(e) {
 
     render();
 });
+
+var gameState = {
+    state: 0,
+    colorClear: false,
+    colorClearCol: "#000000",
+    advance: function (list, grid) {
+        switch (this.state) {
+            case 0:
+                // In this state we are waiting for user to finish a drag list
+                if (list.isValid(grid)) {
+                    this.state = 1;
+                }
+                break;
+            case 1:
+                // This state we are marking the dots on the dragline
+                // and changing state of other affected dots
+                // We will also detect a closed polygon creating a colorclear
+                // and mark all dots of that color inactive
+                grid.markDestroyed(list.list);
+                if (list.dragListClosed) {
+                    this.colorClearCol = grid.getColor(list.list[0].x, list.list[0].y);
+                    this.colorClear = true;
+                    grid.markAllWithColor(this.colorClearCol);
+
+                    var enclosedPos = list.getEnclosedPos(grid.width, grid.height);
+                    grid.markBombs(enclosedPos);
+                }
+                else {
+                    this.colorClear = false;
+                }
+
+                this.state = 2;
+                break;
+            case 2:
+                // In this state we remove and replace inactive dots
+                grid.removeDestroyed();
+                grid.populateInactive([this.colorClearCol]);
+                this.state = 3;
+                break;
+            case 3:
+                // In this state we are exploading bombs, marking them inactive,
+                // and changing the state of adjacent dots
+                grid.exploadBombs();
+                this.state = 4;
+                break;
+            case 4:
+                // In this state we are removing and replacing inactive dots
+                grid.removeDestroyed();
+                grid.populateInactive([this.colorClearCol]);
+                this.state = 0;
+                break;
+        }
+
+        return this.state;
+    },
+};
 
 curDotsGrid.init();
 render();
@@ -569,4 +653,32 @@ if (found.length != 1 ||
     (found[0].x != 6 || found[0].y != 2)) {
     alert('failed 4');
     alert('length: ' + found.length.toString());
+}
+
+var found = findEnclosed([
+        {x: 3, y: 9},
+        {x: 3, y: 10},
+        {x: 3, y: 11},
+        {x: 3, y: 12},
+        {x: 4, y: 12},
+        {x: 5, y: 12},
+        {x: 6, y: 12},
+        {x: 7, y: 12},
+        {x: 8, y: 12},
+        {x: 9, y: 12},
+        {x: 10, y: 12},
+        {x: 10, y: 11},
+        {x: 9, y: 11},
+        {x: 9, y: 10},
+        {x: 9, y: 9},
+        {x: 8, y: 9},
+        {x: 7, y: 9},
+        {x: 6, y: 9},
+        {x: 5, y: 9},
+        {x: 4, y: 9},
+        {x: 3, y: 9},
+    ], 10, 13);
+
+if (found.length != 8 ) {
+    alert('failed 5 (' + found.length.toString() + ')');
 }
