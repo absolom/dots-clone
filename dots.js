@@ -19,12 +19,20 @@ var canvasPos = {
 }
 
 // Utility functions
-var gridToCoord = function (gridInd) {
+var gridToCoordX = function (gridInd) {
     return gridScale * gridInd + dotOffset;
 }
 
-var coordToGrid = function (coord) {
+var gridToCoordY = function (gridInd) {
+    return gridScale * gridInd + dotOffset + 70;
+}
+
+var coordToGridX = function (coord) {
     return Math.round((coord - dotOffset) / gridScale);
+}
+
+var coordToGridY = function (coord) {
+    return Math.round((coord - dotOffset - 70) / gridScale);
 }
 
 var getGridPosFromEvent = function(e) {
@@ -34,8 +42,8 @@ var getGridPosFromEvent = function(e) {
     };
 
     var gridPos = {
-        x: coordToGrid(mouse.x),
-        y: coordToGrid(mouse.y)
+        x: coordToGridX(mouse.x),
+        y: coordToGridY(mouse.y)
     };
 
     return gridPos;
@@ -46,7 +54,7 @@ var getGridPosFromEvent = function(e) {
 var drawDot = function (gridX, gridY, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(gridToCoord(gridX), gridToCoord(gridY), dotRadius, 0, 2*Math.PI);
+    ctx.arc(gridToCoordX(gridX), gridToCoordY(gridY), dotRadius, 0, 2*Math.PI);
     ctx.fill();
 };
 
@@ -60,8 +68,8 @@ var renderDragList = function(dragList) {
 
     for (var i = 0; i < list.length; i++) {
         var coord = {
-            x: gridToCoord(list[i].x),
-            y: gridToCoord(list[i].y)
+            x: gridToCoordX(list[i].x),
+            y: gridToCoordY(list[i].y)
         }
         coords.push(coord);
     }
@@ -89,10 +97,33 @@ var renderGrid = function(context, grid) {
     }
 };
 
+var renderScore = function (x, y, score, context) {
+
+    ctx.font = "18px Courier";
+    ctx.strokeText(score[0].progress.toString() + "/" + score[0].goal.toString(), x-20, y+40);
+    context.fillStyle = score[0].color;
+    ctx.beginPath();
+    ctx.arc(x, y, dotRadius, 0, 2*Math.PI);
+    ctx.fill();
+
+    ctx.strokeText(score[1].progress.toString() + "/" + score[1].goal.toString(), x-20+100, y+40);
+    context.fillStyle = score[1].color;
+    ctx.beginPath();
+    ctx.arc(x+100, y, dotRadius, 0, 2*Math.PI);
+    ctx.fill();
+
+    ctx.strokeText(score[2].progress.toString() + "/" + score[2].goal.toString(), x-20+200, y+40);
+    context.fillStyle = score[2].color;
+    ctx.beginPath();
+    ctx.arc(x+200, y, dotRadius, 0, 2*Math.PI);
+    ctx.fill();
+}
+
 var render = function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     renderDragList(curDragList);
     renderGrid(ctx, curDotsGrid);
+    renderScore(120, 20, gameState.score, ctx);
 };
 
 // Dot grid object
@@ -242,14 +273,43 @@ var curDotsGrid = {
 
     },
     removeDestroyed: function () {
+        var ret = {
+            magenta: 0,
+            cyan: 0,
+            blue: 0,
+            green: 0,
+            yellow: 0,
+            red: 0
+        };
         // Remove inactive
         for (var x = 0; x < this.width; x++) {
             for (var y = 0; y < this.height; y++) {
                 if (this.rows[y][x].destroyed) {
+                    col = this.getColor(x, y);
+                    if (col == this.colors.magenta) {
+                        ret.magenta += 1;
+                    }
+                    if (col == this.colors.cyan) {
+                        ret.cyan += 1;
+                    }
+                    if (col == this.colors.blue) {
+                        ret.blue += 1;
+                    }
+                    if (col == this.colors.green) {
+                        ret.green += 1;
+                    }
+                    if (col == this.colors.yellow) {
+                        ret.yellow += 1;
+                    }
+                    if (col == this.colors.red) {
+                        ret.red += 1;
+                    }
                     this.removeDot(x, y);
                 }
             }
         }
+
+        return ret;
     }
 };
 
@@ -517,8 +577,28 @@ canvas.addEventListener('mousemove', function(e) {
 
 var gameState = {
     state: 0,
+    score: [{
+                color: "#00FF00", // TODO: Change this to a dot instance
+                progress: 0,
+                goal: 20
+            },
+            {
+                color: "#0000FF",
+                progress: 0,
+                goal: 25
+            },
+            {
+                color: "#FF0000",
+                progress: 0,
+                goal: 20
+            }],
     colorClear: false,
     colorClearCol: "#000000",
+    updateScore: function (destroyed) {
+        this.score[0].progress += destroyed.green || 0;
+        this.score[1].progress += destroyed.blue || 0;
+        this.score[2].progress += destroyed.red || 0;
+    },
     advance: function (list, grid) {
         switch (this.state) {
             case 0:
@@ -549,7 +629,8 @@ var gameState = {
                 break;
             case 2:
                 // In this state we remove and replace inactive dots
-                grid.removeDestroyed();
+                var removed = grid.removeDestroyed();
+                this.updateScore(removed);
                 grid.populateInactive([this.colorClearCol]);
                 this.state = 3;
                 break;
@@ -561,8 +642,9 @@ var gameState = {
                 break;
             case 4:
                 // In this state we are removing and replacing inactive dots
-                grid.removeDestroyed();
+                var removed = grid.removeDestroyed();
                 grid.populateInactive([this.colorClearCol]);
+                this.updateScore(removed);
                 this.state = 0;
                 break;
         }
