@@ -54,7 +54,7 @@ var getGridPosFromEvent = function(e) {
 var drawDot = function (gridX, gridY, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(gridToCoordX(gridX), gridToCoordY(gridY), dotRadius, 0, 2*Math.PI);
+    ctx.arc(gridX, gridY, dotRadius, 0, 2*Math.PI);
     ctx.fill();
 };
 
@@ -85,38 +85,29 @@ var renderGrid = function(context, grid) {
     for (var y = 0; y < grid.rows.length; y++) {
         for (var x = 0; x < grid.rows[y].length; x++) {
             if (grid.rows[y][x].isbomb) {
-                drawDot(x, y, "#808080");
+                drawDot(gridToCoordX(x), gridToCoordY(y), "#808080");
             }
             else if (grid.rows[y][x].destroyed) {
-                drawDot(x, y, "#000000");
+                drawDot(gridToCoordX(x), gridToCoordY(y), "#000000");
             }
             else {
-                drawDot(x, y, grid.rows[y][x].color);
+                drawDot(gridToCoordX(x), gridToCoordY(y), grid.rows[y][x].color);
             }
         }
     }
 };
 
 var renderScore = function (x, y, score, context) {
-
     ctx.font = "18px Courier";
+
     ctx.strokeText(score[0].progress.toString() + "/" + score[0].goal.toString(), x-20, y+40);
-    context.fillStyle = score[0].color;
-    ctx.beginPath();
-    ctx.arc(x, y, dotRadius, 0, 2*Math.PI);
-    ctx.fill();
+    drawDot(x, y, score[0].color);
 
     ctx.strokeText(score[1].progress.toString() + "/" + score[1].goal.toString(), x-20+100, y+40);
-    context.fillStyle = score[1].color;
-    ctx.beginPath();
-    ctx.arc(x+100, y, dotRadius, 0, 2*Math.PI);
-    ctx.fill();
+    drawDot(x+100, y, score[1].color);
 
     ctx.strokeText(score[2].progress.toString() + "/" + score[2].goal.toString(), x-20+200, y+40);
-    context.fillStyle = score[2].color;
-    ctx.beginPath();
-    ctx.arc(x+200, y, dotRadius, 0, 2*Math.PI);
-    ctx.fill();
+    drawDot(x+200, y, score[2].color);
 }
 
 var render = function() {
