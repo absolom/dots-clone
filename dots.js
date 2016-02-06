@@ -274,8 +274,6 @@ var curDragList = {
         this.list = [];
     },
     getEnclosedPos: function (width, height) {
-        // if (dragList.dragListClosed) {
-        // grid.setColorClear(listPos[0].x, listPos[0].y);
         // Check if there are dots enclosed to turn into bombs
         var enclosed = findEnclosed(this.list, width, height);
         return enclosed;
@@ -323,8 +321,10 @@ var curDragList = {
         // If adding a pos already in the this.list, close the list until it is removed
         for (var i = 0; i < this.list.length; i++) {
             if (this.list[i].x == gridPos.x && this.list[i].y == gridPos.y) {
-                this.dragListClosed = true;
-                this.list.push(gridPos);
+                if (!this.dragListClosed) {
+                    this.list.push(gridPos);
+                    this.dragListClosed = true;
+                }
                 return;
             }
         }
@@ -464,12 +464,6 @@ var findEnclosed = function (listPos, width, height) {
                 if (isIntersection(edges[k], list)) {
                     crossed += 1;
                 }
-                // posA = list[(edges[k][0]-1).mod(list.length)];
-                // posB = list[(edges[k][edges[k].length-1]+1).mod(list.length)];
-                // if (posA.y != posB.y) {
-                //     // We have an intersections
-                //     crossed += 1;
-                // }
             }
 
             if (crossed % 2 == 1) {
