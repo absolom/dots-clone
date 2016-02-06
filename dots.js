@@ -58,7 +58,7 @@ var renderDragList = function(dragList) {
 
     coords = [];
 
-    for (i = 0; i < list.length; i++) {
+    for (var i = 0; i < list.length; i++) {
         var coord = {
             x: gridToCoord(list[i].x),
             y: gridToCoord(list[i].y)
@@ -67,15 +67,15 @@ var renderDragList = function(dragList) {
     }
 
     ctx.moveTo(coords[0].x, coords[0].y);
-    for (i = 1; i < coords.length; i++) {
+    for (var i = 1; i < coords.length; i++) {
         ctx.lineTo(coords[i].x, coords[i].y);
     }
     ctx.stroke();
 };
 
 var renderGrid = function(context, grid) {
-    for (y = 0; y < grid.rows.length; y++) {
-        for (x = 0; x < grid.rows[y].length; x++) {
+    for (var y = 0; y < grid.rows.length; y++) {
+        for (var x = 0; x < grid.rows[y].length; x++) {
             if (grid.rows[y][x].isbomb) {
                 drawDot(x, y, "#808080");
             }
@@ -116,7 +116,7 @@ var curDotsGrid = {
     rows: [],
     areAllSameColor: function (listPos) {
         // Check that they are all the same color
-        for (i = 0; i < listPos.length-1; i++) {
+        for (var i = 0; i < listPos.length-1; i++) {
             col1 = this.getColor(listPos[i].x, listPos[i].y);
             col2 = this.getColor(listPos[i+1].x, listPos[i+1].y)
             if (col1 != col2) {
@@ -127,22 +127,22 @@ var curDotsGrid = {
     },
     markDestroyed: function (listPos) {
         // Remove all the dots from the line
-        for (i = 0; i < listPos.length; i++) {
+        for (var i = 0; i < listPos.length; i++) {
             pos = listPos[i];
             this.rows[pos.y][pos.x].destroyed = true;
         }
     },
     exploadBombs: function () {
         // Blow up bomb dots and their surroundings.
-        for (x = 0; x < this.width; x++) {
-            for (y = 0; y < this.height; y++) {
+        for (var x = 0; x < this.width; x++) {
+            for (var y = 0; y < this.height; y++) {
                 if (this.rows[y][x].isbomb) {
                     this.rows[y][x].isbomb = false;
                     this.rows[y][x].destroyed = true;
 
                     // blow up adjacent
-                    for (i = -1; i <= 1; i++) {
-                        for (j = -1; j <= 1; j++) {
+                    for (var i = -1; i <= 1; i++) {
+                        for (var j = -1; j <= 1; j++) {
                             // Check if the adjacent coord is off the map
                             if (x + i < 0 ||
                                 x + i >= this.width) {
@@ -163,14 +163,14 @@ var curDotsGrid = {
         }
     },
     markBombs: function(listPos) {
-        for (i = 0; i < listPos.length; i++) {
+        for (var i = 0; i < listPos.length; i++) {
             this.markBomb(listPos[i].x, listPos[i].y);
         }
     },
     init: function() {
-        for (y = 0; y < this.height; y++) {
+        for (var y = 0; y < this.height; y++) {
             var row = [];
-            for (x = 0; x < this.width; x++) {
+            for (var x = 0; x < this.width; x++) {
                 // row.push({active: true, color: this.getRandomColor()});
                 row.push({destroyed: false, isbomb: false, active: true, color: this.colors.getRandomColor()});
             }
@@ -189,7 +189,7 @@ var curDotsGrid = {
         this.rows[y][x].color = this.colors.getRandomColor();
 
         var isUnallowed = function () {
-            for (i = 0; i < unallowedColors.length; i++) {
+            for (var i = 0; i < unallowedColors.length; i++) {
                 if (unallowedColors[i] == that.rows[y][x].color) {
                     return true;
                 }
@@ -203,7 +203,7 @@ var curDotsGrid = {
 
     },
     removeDot: function(x, y) {
-        for (i = y; i > 0; i--) {
+        for (var i = y; i > 0; i--) {
             this.rows[i][x].destroyed = this.rows[i-1][x].destroyed;
             this.rows[i][x].color = this.rows[i-1][x].color;
             this.rows[i][x].active = this.rows[i-1][x].active;
@@ -215,8 +215,8 @@ var curDotsGrid = {
         this.rows[y][x].destroyed = true;
     },
     markAllWithColor: function (col) {
-        for (x = 0; x < this.width; x++) {
-            for (y = 0; y < this.height; y++) {
+        for (var x = 0; x < this.width; x++) {
+            for (var y = 0; y < this.height; y++) {
                 if (this.rows[y][x].color == col) {
                     if (this.rows[y][x].isbomb == false) {
                         this.markDot(x, y);
@@ -232,8 +232,8 @@ var curDotsGrid = {
     },
     populateInactive: function(unallowedColors) {
         // Initialize new dots
-        for (x = 0; x < this.width; x++) {
-            for (y = 0; y < this.height; y++) {
+        for (var x = 0; x < this.width; x++) {
+            for (var y = 0; y < this.height; y++) {
                 if (!this.rows[y][x].active) {
                     this.addDot(x, y, unallowedColors);
                 }
@@ -243,8 +243,8 @@ var curDotsGrid = {
     },
     removeDestroyed: function () {
         // Remove inactive
-        for (x = 0; x < this.width; x++) {
-            for (y = 0; y < this.height; y++) {
+        for (var x = 0; x < this.width; x++) {
+            for (var y = 0; y < this.height; y++) {
                 if (this.rows[y][x].destroyed) {
                     this.removeDot(x, y);
                 }
@@ -321,7 +321,7 @@ var curDragList = {
         }
 
         // If adding a pos already in the this.list, close the list until it is removed
-        for (i = 0; i < this.list.length; i++) {
+        for (var i = 0; i < this.list.length; i++) {
             if (this.list[i].x == gridPos.x && this.list[i].y == gridPos.y) {
                 this.dragListClosed = true;
                 this.list.push(gridPos);
@@ -340,7 +340,7 @@ var stripTail = function (listPos) {
     var start = listPos[0];
     var ret = [start];
 
-    for (i = 1; i < listPos.length; i++) {
+    for (var i = 1; i < listPos.length; i++) {
         ret.push({x: listPos[i].x, y: listPos[i].y});
         if (listPos[i].x == start.x &&
             listPos[i].y == start.y) {
@@ -350,7 +350,7 @@ var stripTail = function (listPos) {
 
     var end = listPos[listPos.length-1];
     ret = [end];
-    for (i = listPos.length-2; i >= 0; i--) {
+    for (var i = listPos.length-2; i >= 0; i--) {
         ret.push({x: listPos[i].x, y: listPos[i].y});
         if (listPos[i].x == end.x &&
             listPos[i].y == end.y) {
@@ -361,83 +361,119 @@ var stripTail = function (listPos) {
     return ret;
 };
 
-var findEnclosed = function (listPos, width, height) {
-    var enclosed = [];
-    var str = "";
-    listPos = stripTail(listPos);
-    for (x = 0; x < width; x++) {
-        for (y = 0; y < height; y++) {
-            var crossed = 0;
-            var onEdge = false;
-            for (i = 0; i < listPos.length; i++) {
-                if (listPos[i].x == x && listPos[i].y == y) {
-                    onEdge = true;
-                    break;
-                }
+var findDistAlongParameterizedLoop = function (ind1, ind2, loop) {
+    var d1 = Math.abs(ind1 - ind2);
+    var d2 = (ind1 - ind2).mod(loop.length);
+
+    return Math.min(d1, d2);
+}
+
+// Finds the vertices on any edge which crosses over
+// the horizontal line starting at (startx,y) and going
+// in positive x direction
+var findEdges = function (startx, y, width, vertices) {
+    var edges = [];
+    var edge = [];
+
+    // look for a vertex on the same y with x > startx
+    // starting with that vertex, search -x and +x until the whole edge is enumerated
+    for (var x = startx; x <= width;) {
+        for (var i = 0; i < vertices.length; i++) {
+            var v = vertices[i];
+            if (v.x == x && v.y == y) {
+                edge = [i];
+                break;
             }
-            if (onEdge) {
-                continue;
-            }
-            var skipInds = [];
-            for (i = 0; i < listPos.length-1; i++) {
-                // Check if we've already identified this listPos as
-                // part of an edge which we are intersecting along
-                var skip = false;
-                for (j = 0; j < skipInds.length; j++) {
-                    if (skipInds[j] == i) {
-                        skip = true;
+        }
+
+        if (edge.length != 0) {
+            while (x < width) {
+                x += 1;
+
+                var edgeGrew = false;
+                for (var i = 0; i < vertices.length; i++) {
+                    v = vertices[i];
+                    if (v.x == x && v.y == y &&
+                        findDistAlongParameterizedLoop(i, edge[edge.length-1], vertices) == 1) {
+                        edge.push(i);
+                        edgeGrew = true;
                         break;
                     }
                 }
-                if (skip) {
-                    continue;
-                }
-
-                if (listPos[i].x >= x) {
-                    if (listPos[i].y == y) {
-                        // Count the number of consecutive polygon vertices
-                        // along the tangent
-                        var edgeLen = 1;
-                        var j = (i+1).mod(listPos.length-1);
-                        while (j != i && listPos[j].y == y) {
-                            edgeLen += 1;
-                            j += 1;
-                            j = j % (listPos.length-1);
-                        }
-
-                        if (edgeLen > 1) {
-                            for (k = 0; k < edgeLen; k++) {
-                                skipInds.push(i+k);
-                            }
-                            continue;
-                        }
-
-                        edgeLen = 1;
-                        j = (i-1).mod(listPos.length-1);
-                        while (j != i && listPos[j].y == y) {
-                            edgeLen += 1;
-                            j -= 1;
-                            j = j % (listPos.length-1);
-                        }
-
-                        if (edgeLen > 1) {
-                            for (k = 0; k < edgeLen; k++) {
-                                skipInds.push(i-k);
-                            }
-                            continue;
-                        }
-
-                        crossed += 1;
-                    }
-                    else {
-                    }
+                if (!edgeGrew) {
+                    edges.push(edge);
+                    edge = [];
+                    x -= 1;
+                    break;
                 }
             }
+        }
 
-            // If crossed is odd
+        x += 1;
+    }
+
+    return edges;
+}
+
+var isIntersection = function (edge, list) {
+    var ind = (edge[0]-1).mod(list.length);
+    var isOnEdge = false;
+    for (var i = 0; i < edge.length; i++) {
+        if (edge[i] == ind) {
+            isOnEdge = true;
+            break;
+        }
+    }
+
+    var posA, posB;
+    if (isOnEdge) {
+        posA = list[(edge[0]+1).mod(list.length)];
+        posB = list[(edge[edge.length-1]-1).mod(list.length)];
+    }
+    else {
+        posA = list[(edge[0]-1).mod(list.length)];
+        posB = list[(edge[edge.length-1]+1).mod(list.length)];
+    }
+
+    return posA.y != posB.y;
+}
+
+var findEnclosed = function (listPos, width, height) {
+    var enclosed = [];
+
+    listPos = stripTail(listPos);
+    list = listPos.slice(1);
+
+    for (var x = 0; x < width; x++) {
+        for (var y = 0; y < height; y++) {
+            var inList = false;
+            for (var i = 0; i < list.length; i++) {
+                var v = list[i];
+                if (v.x == x && v.y == y) {
+                    inList = true;
+                }
+            }
+            if (inList) {
+                continue;
+            }
+
+            var edges = findEdges(x, y, width, list);
+            // check if edge is intersection or tangent
+            var crossed = 0;
+            for (var k = 0; k < edges.length; k++) {
+                if (isIntersection(edges[k], list)) {
+                    crossed += 1;
+                }
+                // posA = list[(edges[k][0]-1).mod(list.length)];
+                // posB = list[(edges[k][edges[k].length-1]+1).mod(list.length)];
+                // if (posA.y != posB.y) {
+                //     // We have an intersections
+                //     crossed += 1;
+                // }
+            }
+
             if (crossed % 2 == 1) {
                 enclosed.push({x: x, y: y});
-                // str += "(" + x.toString() + "," + y.toString() + ")";
             }
         }
     }
@@ -546,29 +582,37 @@ render();
 
 //////// Unit tests
 
-var found = findEnclosed([
-        {x: 0, y: 0},
-        {x: 1, y: 0},
-        {x: 1, y: 1},
-        {x: 0, y: 1},
-        {x: 0, y: 0}
-    ], 10, 10);
+var makeLine = function(x, y, dirs) {
+    var ret = [{x: x, y: y}];
+    for (var i = 0; i < dirs.length; i++) {
+        switch(dirs[i]) {
+            case 'U':
+                y -= 1;
+                break;
+            case 'D':
+                y += 1;
+                break;
+            case 'L':
+                x -= 1;
+                break;
+            case 'R':
+                x += 1;
+                break;
+            default:
+                continue;
+        }
+        ret.push({x: x, y: y});
+    }
+    return ret;
+}
+
+var found = findEnclosed(makeLine(0, 0, "RDLU"), 10, 10);
 
 if (found.length != 0) {
     alert('failed 1');
 }
 
-var found = findEnclosed([
-        {x: 0, y: 0},
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 2, y: 1},
-        {x: 2, y: 2},
-        {x: 1, y: 2},
-        {x: 0, y: 2},
-        {x: 0, y: 1},
-        {x: 0, y: 0},
-    ], 10, 10);
+var found = findEnclosed(makeLine(0, 0, "RRDDLLUU"), 10, 10);
 
 if (found.length != 1 ||
     (found[0].x != 1 || found[0].y != 1)) {
@@ -658,11 +702,6 @@ if (found.length != 1 ||
 }
 
 var found = findEnclosed([
-        {x: 3, y: 9},
-        {x: 3, y: 10},
-        {x: 3, y: 11},
-        {x: 3, y: 12},
-        {x: 4, y: 12},
         {x: 5, y: 12},
         {x: 6, y: 12},
         {x: 7, y: 12},
@@ -679,8 +718,56 @@ var found = findEnclosed([
         {x: 5, y: 9},
         {x: 4, y: 9},
         {x: 3, y: 9},
+        {x: 3, y: 10},
+        {x: 3, y: 11},
+        {x: 3, y: 12},
+        {x: 4, y: 12},
+        {x: 5, y: 12},
     ], 10, 13);
 
 if (found.length != 8 ) {
     alert('failed 5 (' + found.length.toString() + ')');
 }
+
+var found = findEnclosed(makeLine(5, 12, "RRUULLDD"), 10, 13);
+
+if (found.length != 1 ) {
+    alert('failed 6 (' + found.length.toString() + ')');
+}
+
+var found = findEnclosed(makeLine(9, 10, "LLLLDDRRURU"), 10, 13);
+
+if (found.length != 1 ) {
+    alert('failed 7 (' + found.length.toString() + ')');
+}
+
+
+var edge = findEdges(0, 0, 10, makeLine(1, 0, "RRRDLLL"));
+
+if (edge.length != 1 ||
+    edge[0].length != 4) {
+    alert("edge 0 failed!");
+}
+
+edge = findEdges(0, 1, 10, makeLine(1, 2, "UURDDRURRD"));
+
+if (edge.length != 3 ||
+    edge[0].length != 1 ||
+    edge[1].length != 1 ||
+    edge[2].length != 3) {
+    alert("edge 1 failed!");
+}
+
+edge = findEdges(0, 1, 10, makeLine(8, 2, "UULDDLULLLLU"));
+
+if (edge.length != 3 ||
+    edge[0].length != 5 ||
+    edge[1].length != 1 ||
+    edge[2].length != 1) {
+    alert("edge 2 failed!");
+}
+
+edges = findEdges(0, 0, 10, makeLine(3, 0, "LL"));
+edges = findEdges(0, 0, 10, makeLine(3, 0, "DLU"));
+
+dist = findDistAlongParameterizedLoop(0, 3, makeLine(3, 0, "DLU"));
