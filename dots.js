@@ -1,3 +1,12 @@
+// Define an object creation function
+if (typeof Object.create !== 'function') {
+    Object.create = function (o) {
+        var F = function () {};
+        F.prototype = o;
+        return new F();
+    }
+}
+
 // Redefine modulo to work for neg numbers
 Number.prototype.mod = function (x) {
     return ((this % x) + x) % x;
@@ -834,7 +843,7 @@ if (edge.length != 3 ||
     alert("edge 2 failed!");
 }
 
-edges = findEdges(0, 0, 10, makeLine(3, 0, "LL"));
-edges = findEdges(0, 0, 10, makeLine(3, 0, "DLU"));
+var edges = findEdges(0, 0, 10, makeLine(3, 0, "LL"));
+var edges = findEdges(0, 0, 10, makeLine(3, 0, "DLU"));
 
-dist = findDistAlongParameterizedLoop(0, 3, makeLine(3, 0, "DLU"));
+var dist = findDistAlongParameterizedLoop(0, 3, makeLine(3, 0, "DLU"));
