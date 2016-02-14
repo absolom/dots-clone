@@ -117,6 +117,8 @@ var gameState = {
     },
 };
 
+var curDotsGrid = DotsGrid();
+
 curDotsGrid.init();
 render();
 

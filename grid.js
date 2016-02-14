@@ -1,21 +1,12 @@
-// Define an object creation function
-if (typeof Object.create !== 'function') {
-    Object.create = function (o) {
-        var F = function () {};
-        F.prototype = o;
-        return new F();
-    }
-}
-
-// Redefine modulo to work for neg numbers
-Number.prototype.mod = function (x) {
-    return ((this % x) + x) % x;
-}
-
 // Dot grid object
 
-var curDotsGrid = {
-    colors: {
+var DotsGrid = function() {
+    var that = {};
+
+    that.width = 10;
+    that.height = 13;
+    var rows = [];
+    var colors = {
         magenta: "#FF00FF",
         cyan: "#00FFFF",
         blue: "#0000FF",
@@ -27,87 +18,31 @@ var curDotsGrid = {
                 var indx = Math.round(Math.random() * (array.length-1));
                 return this[array[indx]];
             }
-        },
-    width: 10,
-    height: 13,
-    rows: [],
-    areAllSameColor: function (listPos) {
-        // Check that they are all the same color
-        for (var i = 0; i < listPos.length-1; i++) {
-            col1 = this.getColor(listPos[i].x, listPos[i].y);
-            col2 = this.getColor(listPos[i+1].x, listPos[i+1].y)
-            if (col1 != col2) {
-                return false;
-            }
-        }
-        return true;
-    },
-    markDestroyed: function (listPos) {
-        // Remove all the dots from the line
-        for (var i = 0; i < listPos.length; i++) {
-            pos = listPos[i];
-            this.rows[pos.y][pos.x].destroyed = true;
-        }
-    },
-    exploadBombs: function () {
-        // Blow up bomb dots and their surroundings.
-        for (var x = 0; x < this.width; x++) {
-            for (var y = 0; y < this.height; y++) {
-                if (this.rows[y][x].isbomb) {
-                    this.rows[y][x].isbomb = false;
-                    this.rows[y][x].destroyed = true;
+        };
 
-                    // blow up adjacent
-                    for (var i = -1; i <= 1; i++) {
-                        for (var j = -1; j <= 1; j++) {
-                            // Check if the adjacent coord is off the map
-                            if (x + i < 0 ||
-                                x + i >= this.width) {
-                                continue;
-                            }
-                            if (y + j < 0 ||
-                                y + j >= this.height) {
-                                continue;
-                            }
+    var markDot = function (x, y) {
+        rows[y][x].destroyed = true;
+    };
 
-                            if (!this.rows[y+j][x+i].isbomb) {
-                                this.rows[y+j][x+i].destroyed = true;
-                            }
-                        }
-                    }
-                }
-            }
+    var removeDot = function(x, y) {
+        for (var i = y; i > 0; i--) {
+            rows[i][x].destroyed = rows[i-1][x].destroyed;
+            rows[i][x].color = rows[i-1][x].color;
+            rows[i][x].active = rows[i-1][x].active;
+            rows[i][x].isbomb = rows[i-1][x].isbomb;
         }
-    },
-    markBombs: function(listPos) {
-        for (var i = 0; i < listPos.length; i++) {
-            this.markBomb(listPos[i].x, listPos[i].y);
-        }
-    },
-    init: function() {
-        for (var y = 0; y < this.height; y++) {
-            var row = [];
-            for (var x = 0; x < this.width; x++) {
-                // row.push({active: true, color: this.getRandomColor()});
-                row.push({destroyed: false, isbomb: false, active: true, color: this.colors.getRandomColor()});
-            }
-            this.rows.push(row);
-        }
-    },
-    getColor: function(x, y) {
-        return this.rows[y][x].color;
-    },
-    addDot: function(x, y, unallowedColors) {
-        var that = this;
+        rows[0][x].active = false;
+    };
 
-        this.rows[y][x].destroyed = false;
-        this.rows[y][x].active = true;
-        this.rows[y][x].isbomb = false;
-        this.rows[y][x].color = this.colors.getRandomColor();
+    var addDot = function(x, y, unallowedColors) {
+        rows[y][x].destroyed = false;
+        rows[y][x].active = true;
+        rows[y][x].isbomb = false;
+        rows[y][x].color = colors.getRandomColor();
 
         var isUnallowed = function () {
             for (var i = 0; i < unallowedColors.length; i++) {
-                if (unallowedColors[i] == that.rows[y][x].color) {
+                if (unallowedColors[i] == rows[y][x].color) {
                     return true;
                 }
             }
@@ -115,50 +50,113 @@ var curDotsGrid = {
         }
 
         while (isUnallowed()) {
-            this.rows[y][x].color = this.colors.getRandomColor();
+            rows[y][x].color = colors.getRandomColor();
         }
 
-    },
-    removeDot: function(x, y) {
-        for (var i = y; i > 0; i--) {
-            this.rows[i][x].destroyed = this.rows[i-1][x].destroyed;
-            this.rows[i][x].color = this.rows[i-1][x].color;
-            this.rows[i][x].active = this.rows[i-1][x].active;
-            this.rows[i][x].isbomb = this.rows[i-1][x].isbomb;
+    };
+
+    var getColor = function(x, y) {
+        return rows[y][x].color;
+    };
+
+    var markDestroyed = function (listPos) {
+        // Remove all the dots from the line
+        for (var i = 0; i < listPos.length; i++) {
+            pos = listPos[i];
+            rows[pos.y][pos.x].destroyed = true;
         }
-        this.rows[0][x].active = false;
-    },
-    markDot: function (x, y) {
-        this.rows[y][x].destroyed = true;
-    },
-    markAllWithColor: function (col) {
-        for (var x = 0; x < this.width; x++) {
-            for (var y = 0; y < this.height; y++) {
-                if (this.rows[y][x].color == col) {
-                    if (this.rows[y][x].isbomb == false) {
-                        this.markDot(x, y);
+    };
+
+
+    var init = function() {
+        for (var y = 0; y < that.height; y++) {
+            var row = [];
+            for (var x = 0; x < that.width; x++) {
+                row.push({destroyed: false, isbomb: false, active: true, color: colors.getRandomColor()});
+            }
+            rows.push(row);
+        }
+    };
+
+    var areAllSameColor = function (listPos) {
+        // Check that they are all the same color
+        for (var i = 0; i < listPos.length-1; i++) {
+            col1 = getColor(listPos[i].x, listPos[i].y);
+            col2 = getColor(listPos[i+1].x, listPos[i+1].y)
+            if (col1 != col2) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    var exploadBombs = function () {
+        // Blow up bomb dots and their surroundings.
+        for (var x = 0; x < that.width; x++) {
+            for (var y = 0; y < that.height; y++) {
+                if (rows[y][x].isbomb) {
+                    rows[y][x].isbomb = false;
+                    rows[y][x].destroyed = true;
+
+                    // blow up adjacent
+                    for (var i = -1; i <= 1; i++) {
+                        for (var j = -1; j <= 1; j++) {
+                            // Check if the adjacent coord is off the map
+                            if (x + i < 0 ||
+                                x + i >= that.width) {
+                                continue;
+                            }
+                            if (y + j < 0 ||
+                                y + j >= that.height) {
+                                continue;
+                            }
+
+                            if (!rows[y+j][x+i].isbomb) {
+                                rows[y+j][x+i].destroyed = true;
+                            }
+                        }
                     }
                 }
             }
         }
-    },
-    markBomb: function (x, y) {
-        this.rows[y][x].isbomb = true;
-        this.rows[y][x].active = true;
-        this.rows[y][x].destroyed = false;
-    },
-    populateInactive: function(unallowedColors) {
-        // Initialize new dots
+    };
+
+    var markBombs = function(listPos) {
+        for (var i = 0; i < listPos.length; i++) {
+            markBomb(listPos[i].x, listPos[i].y);
+        }
+    };
+
+    var markBomb = function (x, y) {
+        rows[y][x].isbomb = true;
+        rows[y][x].active = true;
+        rows[y][x].destroyed = false;
+    };
+
+    var markAllWithColor = function (col) {
         for (var x = 0; x < this.width; x++) {
             for (var y = 0; y < this.height; y++) {
-                if (!this.rows[y][x].active) {
-                    this.addDot(x, y, unallowedColors);
+                if (rows[y][x].color == col) {
+                    if (rows[y][x].isbomb == false) {
+                        markDot(x, y);
+                    }
                 }
             }
         }
+    };
 
-    },
-    removeDestroyed: function () {
+    var populateInactive = function(unallowedColors) {
+        // Initialize new dots
+        for (var x = 0; x < this.width; x++) {
+            for (var y = 0; y < this.height; y++) {
+                if (!rows[y][x].active) {
+                    addDot(x, y, unallowedColors);
+                }
+            }
+        }
+    };
+
+    var removeDestroyed = function () {
         var ret = {
             magenta: 0,
             cyan: 0,
@@ -170,31 +168,44 @@ var curDotsGrid = {
         // Remove inactive
         for (var x = 0; x < this.width; x++) {
             for (var y = 0; y < this.height; y++) {
-                if (this.rows[y][x].destroyed) {
-                    col = this.getColor(x, y);
-                    if (col == this.colors.magenta) {
+                if (rows[y][x].destroyed) {
+                    col = getColor(x, y);
+                    if (col == colors.magenta) {
                         ret.magenta += 1;
                     }
-                    if (col == this.colors.cyan) {
+                    if (col == colors.cyan) {
                         ret.cyan += 1;
                     }
-                    if (col == this.colors.blue) {
+                    if (col == colors.blue) {
                         ret.blue += 1;
                     }
-                    if (col == this.colors.green) {
+                    if (col == colors.green) {
                         ret.green += 1;
                     }
-                    if (col == this.colors.yellow) {
+                    if (col == colors.yellow) {
                         ret.yellow += 1;
                     }
-                    if (col == this.colors.red) {
+                    if (col == colors.red) {
                         ret.red += 1;
                     }
-                    this.removeDot(x, y);
+                    removeDot(x, y);
                 }
             }
         }
 
         return ret;
-    }
+    };
+
+    that.init = init;
+    that.markDestroyed = markDestroyed;
+    that.areAllSameColor = areAllSameColor;
+    that.getColor = getColor;
+    that.exploadBombs = exploadBombs;
+    that.markBombs = markBombs;
+    that.markAllWithColor = markAllWithColor;
+    that.populateInactive = populateInactive;
+    that.removeDestroyed = removeDestroyed;
+    that.rows = rows;
+
+    return that;
 };

@@ -1,3 +1,17 @@
+// Define an object creation function
+if (typeof Object.create !== 'function') {
+    Object.create = function (o) {
+        var F = function () {};
+        F.prototype = o;
+        return new F();
+    }
+}
+
+// Redefine modulo to work for neg numbers
+Number.prototype.mod = function (x) {
+    return ((this % x) + x) % x;
+}
+
 // Globals which need to be pushed into objects
 var dotRadius = 13;
 var dotSpacing = 18;
