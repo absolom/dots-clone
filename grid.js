@@ -1,10 +1,13 @@
 // Dot grid object
 
+// Refactor into two different classes, one responsible
+// for storing the dots and giving functions to retrieve them, replace them, move them, etc.
+// Second class is responsible for change the state of a specific dot.
+
+// Returns a new DotsGrid instance.  Not a constructor, don't use with "new"
 var DotsGrid = function() {
     var that = {};
 
-    that.width = 10;
-    that.height = 13;
     var rows = [];
     var colors = {
         magenta: "#FF00FF",
@@ -19,6 +22,8 @@ var DotsGrid = function() {
                 return this[array[indx]];
             }
         };
+
+    ////////// PRIVATE METHODS ///////////////////
 
     var markDot = function (x, y) {
         rows[y][x].destroyed = true;
@@ -54,6 +59,8 @@ var DotsGrid = function() {
         }
 
     };
+
+    /////// PUBLIC METHODS //////////////////////////////////
 
     var getColor = function(x, y) {
         return rows[y][x].color;
@@ -206,6 +213,8 @@ var DotsGrid = function() {
     that.populateInactive = populateInactive;
     that.removeDestroyed = removeDestroyed;
     that.rows = rows;
+    that.width = 10;
+    that.height = 13;
 
     return that;
 };
